@@ -9,7 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        if: github.event.pull_request.merged
         uses: actions/checkout@v1
 
       - name: Get Release Version
