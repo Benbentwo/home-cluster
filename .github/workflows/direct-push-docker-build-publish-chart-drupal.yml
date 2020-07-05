@@ -60,7 +60,7 @@ jobs:
           cd charts
           for chart in $(ls -d *); do
             helm package --app-version=${{steps.increment-semver-patch.outputs.version}} --version=${{steps.increment-semver-patch.outputs.version}} ${chart}
-            mv ${chart}-${{steps.docker_build.outputs.version}}.tgz ../release
+            mv ${chart}-${{steps.increment-semver-patch.outputs.version}}.tgz ../release
           done
           ls -la *.tgz
           echo "##[set-output name=helm_package;]$(echo ${chart}-${{steps.increment-semver-patch.outputs.version}}.tgz)"
