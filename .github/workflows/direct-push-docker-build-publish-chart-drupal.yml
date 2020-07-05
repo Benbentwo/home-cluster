@@ -1,0 +1,113 @@
+name: Push
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Get Release Version
+        id: get-release-type
+        run: |
+          if [[ "${{github.event.pull_request.state}}" == "closed" ]] || [[ "${{github.event.pull_request.merged}}" == "true" ]]; then
+            echo "##[set-output name=merged;]true"
+            echo '${{toJson(github.event.pull_request)}}' > data.json
+            jq -r '.labels[] | .name' data.json > labels.txt
+            while IFS= read -r name; do
+              echo "Looking at label: \"${name}\""
+              if [[ ${name} =~ [rR]elease\ ([A-Za-z0-9_]+) ]] ; then
+                release_type=${BASH_REMATCH[1]}
+                echo "ReleaseType set to: \"${release_type}\""
+                if echo $release_type | grep -iqF patch; then
+                  echo "Setting to Patch"
+                  echo "##[set-output name=release-type;]patch"
+                  echo "##[set-output name=release-command;]-p"
+                elif echo $release_type | grep -iqF minor; then
+                  echo "Setting to Minor"
+                  echo "##[set-output name=release-type;]minor"
+                  echo "##[set-output name=release-command;]-m"
+                elif echo $release_type | grep -iqF major; then
+                  echo "Setting to Major"
+                  echo "##[set-output name=release-type;]major"
+                  echo "##[set-output name=release-command;]-M"
+                else
+                  echo "Not sure what release this is, defaulting to patch"
+                  echo "##[set-output name=release-type;]patch"
+                  echo "##[set-output name=release-command;]-p"
+                fi
+              fi
+            done < labels.txt
+          else
+            echo "Was not started by pull request, setting to patch"
+            echo "##[set-output name=release-type;]patch"
+            echo "##[set-output name=release-command;]-p"
+          fi
+
+      # https://github.com/Benbentwo/increment-semver
+      - name: Increment Step Patch
+        id: increment-semver-patch
+        uses: Benbentwo/increment-semver@master
+        with:
+          version-level: "${{steps.get-release-type.outputs.release-command}}"
+
+      - run: |
+          mkdir -p release
+          cd charts
+          for chart in $(ls -d *); do
+            helm package --app-version=${{steps.increment-semver-patch.outputs.version}} --version=${{steps.increment-semver-patch.outputs.version}} ${chart}
+            mv ${chart}-${{steps.docker_build.outputs.version}}.tgz ../release
+          done
+          ls -la *.tgz
+          echo "##[set-output name=helm_package;]$(echo ${chart}-${{steps.increment-semver-patch.outputs.version}}.tgz)"
+        id: helm-package
+
+      # https://github.com/marketplace/actions/create-a-release
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{steps.increment-semver-patch.outputs.version}}
+          release_name: ${{steps.increment-semver-patch.outputs.version}}
+          draft: false
+          prerelease: false
+
+
+      - name: Upload Helm Package to release
+        uses: svenstaro/upload-release-action@v1-release
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: release/*
+          tag: ${{steps.increment-semver-patch.outputs.version}}
+          file_glob: true
+
+      - name: Run Helm Release Drupal (Different Repository)
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+          repository: Benbentwo/Helm-Repo
+          event-type: upload-helm
+          client-payload: '
+            {
+              "repository": "drupal",
+              "helm_chart": "drupal-${{steps.increment-semver-patch.outputs.version}}.tgz",
+              "chart_url": "https://github.com/${{github.repository}}/releases/download/${{steps.increment-semver-patch.outputs.version}}/drupal-${{steps.increment-semver-patch.outputs.version}}.tgz",
+              "version": "${{steps.increment-semver-patch.outputs.version}}"
+            }'
+      - name: Run Helm Release Jenkins-X-Platform (Different Repository)
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+          repository: Benbentwo/Helm-Repo
+          event-type: upload-helm
+          client-payload: '
+            {
+              "repository": "jenkins-x-platform",
+              "helm_chart": "jenkins-x-platform-${{steps.increment-semver-patch.outputs.version}}.tgz",
+              "chart_url": "https://github.com/${{github.repository}}/releases/download/${{steps.increment-semver-patch.outputs.version}}/jenkins-x-platform-${{steps.increment-semver-patch.outputs.version}}.tgz",
+              "version": "${{steps.increment-semver-patch.outputs.version}}"
+            }'

@@ -1,0 +1,33 @@
+apiVersion: jenkins.io/v1
+kind: Release
+metadata:
+  creationTimestamp: "2020-07-03T08:38:30Z"
+  deletionTimestamp: null
+  name: '{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}'
+spec:
+  commits:
+  - author: {}
+    branch: master
+    committer: {}
+    message: |
+      fix: making sure PVS finalizers get  set to nil during 'jx uninstall'
+
+      When uninstalling `jx`, the PVC would hang in a terminating state. When
+      we set the PVC, finalizer volume to `null`, the uninstall process
+      completes as normal.
+
+      There is an open issue in
+      [Kubernetes](https://github.com/kubernetes/kubernetes/issues/77258).
+
+      This commit sets the PVC finalizer to `null`, which fixes our issue and
+      allows users to uninstall `jx`.
+
+      Also adding `jx uninstall` as command to ci.sh of tf-boot context
+    sha: 70516f33a4b9ba108c23eaf8582d0f8f0d9ca701
+  gitCloneUrl: https://github.com/jenkins-x/jx.git
+  gitHttpUrl: https://github.com/jenkins-x/jx
+  gitOwner: jenkins-x
+  gitRepository: jx
+  name: '{{ .Chart.Name }}'
+  version: 2.1.97
+status: {}
