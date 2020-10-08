@@ -10,7 +10,7 @@ metadata:
 spec:
   releaseName: factorio-bobs-angels
   chart:
-    git: git@github.com:Benebntwo/home-cluster
+    git: git@github.com:Benbentwo/home-cluster
     path: charts/factorio
     ref: master
   values: {}
