@@ -10,7 +10,7 @@ metadata:
 spec:
   releaseName: bookstack
   chart:
-    git: git@github.com:helm/charts
-    path: charts/stable/bookstack
-    ref: 83fa6578f516ad0909592a43960affafec299441
+    repository: https://kubernetes-charts.storage.googleapis.com/
+    name: bookstack
+    version: 0.27.5
   values: {}
