@@ -1,0 +1,16 @@
+---
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: factorio
+  namespace: factorio
+  annotations:
+    flux.weave.works/ignore: "false"
+    flux.weave.works/automated: "true"
+spec:
+  releaseName: factorio-bobs-angels
+  chart:
+    git: git@github.com:Benbentwo/home-cluster
+    path: charts/factorio
+    ref: master
+  values: {}
