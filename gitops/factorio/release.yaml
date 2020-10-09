@@ -2,15 +2,15 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: bookstack
-  namespace: bookstack
+  name: factorio
+  namespace: factorio
   annotations:
     flux.weave.works/ignore: "false"
     flux.weave.works/automated: "true"
 spec:
-  releaseName: bookstack
+  releaseName: factorio-bobs-angels
   chart:
-    repository: https://kubernetes-charts.storage.googleapis.com/
-    name: bookstack
-    version: 1.2.1 #version not appVersion
+    git: git@github.com:Benbentwo/home-cluster
+    path: charts/factorio
+    ref: master
   values: {}
